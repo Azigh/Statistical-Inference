@@ -1,0 +1,160 @@
+---
+title: "Final Project- Statistical Inference (Part 2)"
+date: "06/27/2019"
+output: pdf_document
+---
+## Part 2: Basic inferential data analysis.
+
+## Overview:
+We're going to analyze the ToothGrowth data in the R datasets package. 
+As the dataset shows, the length of teeth is examined for 60 pigs at three Dose levels of two different supplements. The supplements are orange juice (OJ) or ascorbic acid (VC) which contain high level of Vitamin C.
+
+###The following discussions will be addressed in this report:
+1- Load the ToothGrowth data and perform some basic exploratory data analyses
+2- Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose.
+3- State your conclusions and the assumptions needed for your conclusions.
+
+```{r}
+# load needed libraries
+
+library(datasets)
+library(ggplot2)
+library(data.table)
+library(data.table)
+```
+
+###Question 1: Load the ToothGrowth data and perform some basic exploratory data analyses
+```{r}
+data(ToothGrowth)
+ToothGrowth<- data.table(ToothGrowth) 
+#change the name of variables to make those more descriptive:
+setnames(ToothGrowth, c('len','supp','dose'),c('Length','Supplement','Dose'))
+#convert the type of dose variable to factor!
+#ToothGrowth$Dose <- as.factor(ToothGrowth$Dose)
+```
+#### Some basic Summary of data table
+
+```{r}
+# Structute of variables in data table
+str(ToothGrowth)
+```
+
+```{r}
+# See the first 10 rows of data table
+head(ToothGrowth,10)
+```
+```{r}
+# See the summary of data table
+summary(ToothGrowth)
+```
+
+```{r}
+# To gain an overall summary of the original data, we create a contingency table from the original data table
+table(ToothGrowth$Supplement, ToothGrowth$Dose)
+```
+
+#### Perform basic exploratory data analysis
+```{r}
+ggplot(aes(x = Supplement, y = Length), data = ToothGrowth) +
+    geom_boxplot(aes(fill = Supplement)) + facet_wrap(~ Dose)+ labs(title="Tooth growth by supplement type and dose(mg)" , y = "length", x = "Supplement")
+
+```
+
+#### Summary of the boxplot:
+Based on this basic exploratory data analysis using the boxplot, the dosage appears to significantly affect tooth length. As, the plot shoes the more dosage is co-related to more tooth growth. While the other variable (supplement) is less clear to see its impact to tooth growth. The more Vitamin C given as a supplement, the longer the teeth grew. However, at low dose levels (0.5 and 1.00), orange juice appears to correlate with longer teeth, but at 2.0mg there is no difference between OJ and VC!
+
+###Question 2: Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose.
+
+Based on our observation from exploratory data analysis, we think it is worthful to test the tooth growth as function of both supplement and dosage. Before constructing our hypothesis tests the following assumptions are taken:
+
+1- The variables are independent and identically distributed (iid).
+
+2- Variances of the distributions of tooth growth according to each supplement and dosage are different.
+
+3- Tooth growth observations are normal distributed.
+
+
+Based on the above assumptions and the fact that number of observations are relatively small (n=60), We will use the t-test for testing hypotheses. The level of significancy is set as alpha=0.05.
+
+### Testing influence on tooth growth according to supplement and dose:
+
+1- H0: mu(VC, 0.5) = mu(OJ, 0.5)
+
+2- H0: mu(VC, 1.0) = mu(OJ, 1.0)
+
+3- H0: mu(VC, 2.0) = mu(OJ, 2.0)
+
+For each of these hypothesis the H0 will be tested against the respective alternate hypothesis (~=). So that the two.sided t-test will be run for each case.
+
+##### 1: H0: mu(VC, 0.5) = mu(OJ, 0.5)
+
+```{r}
+VC1<-ToothGrowth[which(ToothGrowth$Dose==0.5 & ToothGrowth$Supplement=='VC'),]$Length
+OJ1<-ToothGrowth[which(ToothGrowth$Dose==0.5 & ToothGrowth$Supplement=='OJ'),]$Length
+t.test(VC1, OJ1, conf.level = 0.95)
+
+```
+
+**Result:** The p-value=0.006 smaller than alpha=0.05. And as we can see the 95% confidence interval doesn't contain 0 so **REJECT** the null hypothesis. 
+
+##### 2: H0: mu(VC, 1.0) = mu(OJ, 1.0)
+
+```{r}
+VC2<-ToothGrowth[which(ToothGrowth$Dose==1.0 & ToothGrowth$Supplement=='VC'),]$Length
+OJ2<-ToothGrowth[which(ToothGrowth$Dose==1.0 & ToothGrowth$Supplement=='OJ'),]$Length
+t.test(VC2, OJ2, conf.level = 0.95)
+
+```
+**Result:** The p-value=0.001 smaller than alpha=0.05. And as we can see the 95% confidence interval doesn't contain 0 so **REJECT** the null hypothesis. 
+
+##### 3: H0: mu(VC, 2.0) = mu(OJ, 2.0)
+
+```{r}
+VC3<-ToothGrowth[which(ToothGrowth$Dose==2.0 & ToothGrowth$Supplement=='VC'),]$Length
+OJ3<-ToothGrowth[which(ToothGrowth$Dose==2.0 & ToothGrowth$Supplement=='OJ'),]$Length
+t.test(VC3, OJ3, conf.level = 0.95)
+```
+
+**Result:** The p-value=0.96 greater than alpha=0.05. And as we can see the 95% confidence interval contains 0 so we **FAIL to REJECT** the null hypothesis. Therefore, using Dose=2.0, the effect of OJ compare to VC on tooth growth is not distingushable! 
+as oppose to using Dose=0.5 and Dose=1.0, as the above two hypotheses show, OJ is correlated to more tooth growth compare with VC.
+
+### Testing the impact of different doses
+
+We set the null hypothesis (H0) as to be: the dose has no influence and the tooth growth is always the sam, and the alternative hypothesis (Ha) as higher dose results in an greater tooth growth.
+
+##### 1- compare the 0.5mg and 1.0mg dose
+```{r}
+#H0: 0.5 = 1.0
+#Ha: 0.5 < 1.0
+d05 = ToothGrowth$Length[ToothGrowth$Dose == 0.5]
+d1 = ToothGrowth$Length[ToothGrowth$Dose == 1.0]
+t.test(d05, d1, alternative = "less", paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+```
+**Result:** According to the realy small p-value = 6.342e-08, we have to reject the null hypothesis and conclude that the 0.5mg dose results in less tooth growth than the 1.0mg dose.
+
+##### 2- compare the 1.0mg and 2.0mg dose
+```{r}
+#H0: 1.0 = 2.0
+#Ha: 1.0 < 2.0
+d1 = ToothGrowth$Length[ToothGrowth$Dose == 1.0]
+d2 = ToothGrowth$Length[ToothGrowth$Dose == 2.0]
+t.test(d1, d2, alternative = "less", paired = FALSE, var.equal = FALSE, conf.level = 0.95)
+```
+**Result:** According to the realy small p-value = 9.532e-06, we have to reject the null hypothesis and conclude that the 1.0mg dose results in less tooth growth than the 2.0mg dose.
+
+
+### Conclusion:
+With alpha=0.05 as the level of significance, we can conclude the followings:
+
+1) In general, the OJ supplement results in a greater tooth growth. However, There is one exception: With the 2.0mg dose the supplement type dosn't make any difference.
+
+2) A higher dose results in a greater tooth growth.
+
+
+
+
+
+
+
+
+
